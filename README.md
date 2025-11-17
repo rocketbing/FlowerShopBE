@@ -81,7 +81,21 @@ JWT_EXPIRE=7d
 # Stripe Configuration
 STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key_here
 STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret_here
+
+# Email Configuration (for account activation)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your_email@gmail.com
+SMTP_PASS=your_app_password_here
+
+# Frontend URL (for activation links)
+FRONTEND_URL=http://localhost:3000
 ```
+
+**邮件配置说明：**
+- 如果使用 Gmail，需要生成应用专用密码（不是普通密码）
+- 访问：Google Account → Security → 2-Step Verification → App passwords
+- 其他邮件服务商请参考相应的 SMTP 配置
 
 ### 3. 启动 MongoDB
 
@@ -139,8 +153,10 @@ http://localhost:3000/api-docs
 
 ### 认证相关 (`/api/auth`)
 
-- `POST /api/auth/register` - 用户注册
-- `POST /api/auth/login` - 用户登录
+- `POST /api/auth/register` - 用户注册（会发送激活邮件）
+- `GET /api/auth/activate` - 激活账号（通过邮件链接）
+- `POST /api/auth/resend-activation` - 重发激活邮件
+- `POST /api/auth/login` - 用户登录（需要先激活邮箱）
 - `GET /api/auth/me` - 获取当前用户信息（需要认证）
 - `PUT /api/auth/profile` - 更新用户资料（需要认证）
 
@@ -199,7 +215,43 @@ Content-Type: application/json
 }
 ```
 
-### 2. 用户登录
+响应：
+```json
+{
+  "success": true,
+  "message": "Registration successful! Please check your email to activate your account.",
+  "user": {
+    "id": "...",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "emailVerified": false
+  }
+}
+```
+
+**注意**：注册成功后会发送激活邮件到用户邮箱，用户需要点击邮件中的链接激活账号后才能登录。
+
+### 2. 激活账号
+
+用户注册后会收到激活邮件，点击邮件中的链接即可激活账号。激活链接格式：
+```
+GET /api/auth/activate?email=john@example.com&code=activation_code_here
+```
+
+激活成功后会重定向到登录页面。
+
+如果激活链接过期，可以请求重发激活邮件：
+
+```bash
+POST /api/auth/resend-activation
+Content-Type: application/json
+
+{
+  "email": "john@example.com"
+}
+```
+
+### 3. 用户登录
 
 ```bash
 POST /api/auth/login
@@ -210,6 +262,8 @@ Content-Type: application/json
   "password": "password123"
 }
 ```
+
+**注意**：只有激活了邮箱的账号才能登录。如果邮箱未激活，会返回 403 错误。
 
 响应：
 ```json
@@ -341,6 +395,36 @@ db.users.updateOne(
 - 创建、更新、删除商品
 - 查看所有订单
 - 更新订单状态
+
+## 删除用户
+
+有几种方式可以删除用户：
+
+### 方法 1: 使用删除用户脚本（推荐）
+
+```bash
+# 通过邮箱删除用户
+node scripts/deleteUser.js user@example.com
+
+# 通过用户ID删除
+node scripts/deleteUser.js --id <user_id>
+
+# 删除所有用户（危险操作）
+node scripts/deleteUser.js --all
+```
+
+### 方法 2: 使用 MongoDB Compass 或 mongosh
+
+```javascript
+// 在 mongosh 中执行
+use flowershop
+
+// 删除指定用户
+db.users.deleteOne({ email: "user@example.com" })
+
+// 删除所有用户（危险）
+db.users.deleteMany({})
+```
 
 ## 查看数据库数据
 

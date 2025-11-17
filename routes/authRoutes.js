@@ -6,6 +6,8 @@ const {
   login,
   getMe,
   updateProfile,
+  activateAccount,
+  resendActivation,
 } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
 
@@ -56,7 +58,7 @@ const loginValidation = [
  *                 example: "1234567890"
  *     responses:
  *       201:
- *         description: User registered successfully
+ *         description: Registration successful, activation email sent
  *         content:
  *           application/json:
  *             schema:
@@ -65,17 +67,21 @@ const loginValidation = [
  *                 success:
  *                   type: boolean
  *                   example: true
- *                 token:
+ *                 message:
  *                   type: string
- *                   example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *                   example: Registration successful! Please check your email to activate your account.
  *                 user:
- *                   $ref: '#/components/schemas/User'
- *       400:
- *         description: Validation error or user already exists
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     name:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *                     emailVerified:
+ *                       type: boolean
+ *                       example: false
  */
 router.post('/register', registerValidation, register);
 
@@ -124,6 +130,19 @@ router.post('/register', registerValidation, register);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Email not verified
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Please verify your email before logging in. Check your inbox for the activation link.
  */
 router.post('/login', loginValidation, login);
 
@@ -221,5 +240,77 @@ router.get('/me', protect, getMe);
  *               $ref: '#/components/schemas/Error'
  */
 router.put('/profile', protect, updateProfile);
+
+/**
+ * @swagger
+ * /api/auth/activate:
+ *   get:
+ *     summary: Activate user account via email link
+ *     tags: [Authentication]
+ *     parameters:
+ *       - in: query
+ *         name: email
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: email
+ *         description: User email address
+ *       - in: query
+ *         name: code
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Activation code from email
+ *     responses:
+ *       302:
+ *         description: Redirect to login page with activated=true parameter
+ *       400:
+ *         description: Invalid activation link or expired
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get('/activate', activateAccount);
+
+/**
+ * @swagger
+ * /api/auth/resend-activation:
+ *   post:
+ *     summary: Resend activation email
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: user@example.com
+ *     responses:
+ *       200:
+ *         description: Activation email sent successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Activation email has been sent. Please check your inbox.
+ *       400:
+ *         description: Account already activated or user not found
+ *       500:
+ *         description: Failed to send email
+ */
+router.post('/resend-activation', resendActivation);
 
 module.exports = router;

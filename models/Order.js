@@ -108,5 +108,11 @@ const OrderSchema = new mongoose.Schema({
   },
 });
 
+// Add indexes for better query performance
+OrderSchema.index({ user: 1, createdAt: -1 }); // Compound index for user orders sorted by date
+OrderSchema.index({ status: 1 }); // For filtering by order status
+OrderSchema.index({ createdAt: -1 }); // For sorting all orders by date
+OrderSchema.index({ isPaid: 1 }); // For filtering paid/unpaid orders
+
 module.exports = mongoose.model('Order', OrderSchema);
 

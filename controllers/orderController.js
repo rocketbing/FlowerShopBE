@@ -36,19 +36,39 @@ exports.createOrder = async (req, res, next) => {
       image: item.product.images[0]?.url || '',
     }));
 
-    // Update product stock before creating order
+    // Check stock availability for all products first (single query)
+    const productIds = cart.items.map(item => item.product._id);
+    const products = await Product.find({ _id: { $in: productIds } });
+    
+    // Create a map for quick lookup
+    const productMap = new Map(products.map(p => [p._id.toString(), p]));
+    
+    // Validate stock for all items
     for (const item of cart.items) {
-      const product = await Product.findById(item.product._id);
+      const product = productMap.get(item.product._id.toString());
+      if (!product) {
+        return res.status(404).json({
+          success: false,
+          message: `Product not found`,
+        });
+      }
       if (product.stock < item.quantity) {
         return res.status(400).json({
           success: false,
           message: `Insufficient stock for ${product.name}`,
         });
       }
-      await Product.findByIdAndUpdate(item.product._id, {
-        $inc: { stock: -item.quantity },
-      });
     }
+    
+    // Bulk update stock for all products (single operation)
+    const bulkOps = cart.items.map(item => ({
+      updateOne: {
+        filter: { _id: item.product._id },
+        update: { $inc: { stock: -item.quantity } },
+      },
+    }));
+    
+    await Product.bulkWrite(bulkOps);
 
     // Create order
     const order = await Order.create({

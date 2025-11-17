@@ -51,6 +51,11 @@ const options = {
               enum: ['user', 'admin'],
               description: 'User role',
             },
+            emailVerified: {
+              type: 'boolean',
+              description: 'Whether email is verified',
+              example: false,
+            },
             address: {
               type: 'object',
               properties: {

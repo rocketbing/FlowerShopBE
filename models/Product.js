@@ -64,5 +64,11 @@ const ProductSchema = new mongoose.Schema({
   },
 });
 
+// Add indexes for better query performance
+ProductSchema.index({ category: 1, isAvailable: 1 }); // Compound index for category and availability queries
+ProductSchema.index({ isAvailable: 1 }); // For filtering available products
+ProductSchema.index({ name: 'text', description: 'text' }); // Text search index
+ProductSchema.index({ createdAt: -1 }); // For sorting by creation date
+
 module.exports = mongoose.model('Product', ProductSchema);
 

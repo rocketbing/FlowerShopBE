@@ -40,11 +40,28 @@ const UserSchema = new mongoose.Schema({
     enum: ['user', 'admin'],
     default: 'user',
   },
+  emailVerified: {
+    type: Boolean,
+    default: false,
+  },
+  activationCode: {
+    type: String,
+    select: false,
+  },
+  activationCodeExpire: {
+    type: Date,
+    select: false,
+  },
   createdAt: {
     type: Date,
     default: Date.now,
   },
 });
+
+// Add indexes for better query performance
+UserSchema.index({ email: 1 }); // Already unique, but explicit index
+UserSchema.index({ emailVerified: 1 }); // For querying unverified users
+UserSchema.index({ createdAt: -1 }); // For sorting by creation date
 
 // Encrypt password using bcrypt
 UserSchema.pre('save', async function (next) {

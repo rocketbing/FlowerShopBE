@@ -35,6 +35,10 @@ const CartSchema = new mongoose.Schema({
   },
 });
 
+// Add indexes for better query performance
+CartSchema.index({ user: 1 }); // Already unique, but explicit index
+CartSchema.index({ updatedAt: -1 }); // For sorting by update date
+
 // Calculate total price before saving
 CartSchema.pre('save', function (next) {
   this.totalPrice = this.items.reduce(
