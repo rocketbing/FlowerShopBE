@@ -8,6 +8,7 @@ const {
   updateProfile,
   activateAccount,
   resendActivation,
+  googleLogin,
 } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
 
@@ -145,6 +146,67 @@ router.post('/register', registerValidation, register);
  *                   example: Please verify your email before logging in. Check your inbox for the activation link.
  */
 router.post('/login', loginValidation, login);
+
+/**
+ * @swagger
+ * /api/auth/google:
+ *   post:
+ *     summary: Login or register with Google account
+ *     tags: [Authentication]
+ *     description: Authenticate user using Google OAuth ID token. Creates new account if user doesn't exist.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - idToken
+ *             properties:
+ *               idToken:
+ *                 type: string
+ *                 description: Google OAuth ID token from frontend
+ *                 example: "eyJhbGciOiJSUzI1NiIsImtpZCI6Ij..."
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 token:
+ *                   type: string
+ *                   description: JWT token for authenticated requests
+ *                   example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     name:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *                     role:
+ *                       type: string
+ *                       enum: [user, admin]
+ *                     provider:
+ *                       type: string
+ *                       enum: [local, google]
+ *                     emailVerified:
+ *                       type: boolean
+ *       400:
+ *         description: Invalid Google token or missing idToken
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post('/google', googleLogin);
 
 /**
  * @swagger

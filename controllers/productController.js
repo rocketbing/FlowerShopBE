@@ -3,9 +3,21 @@ const Product = require('../models/Product');
 // @desc    Get all products
 // @route   GET /api/products
 // @access  Public
+// @query   category, search, color, minPrice, maxPrice, onSale, sortBy, page, limit
 exports.getProducts = async (req, res, next) => {
   try {
-    const { category, search, page = 1, limit = 10 } = req.query;
+    const { 
+      category, 
+      search, 
+      color, 
+      minPrice, 
+      maxPrice, 
+      onSale, 
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+      page = 1, 
+      limit = 10 
+    } = req.query;
 
     // Build query
     const query = {};
@@ -18,6 +30,21 @@ exports.getProducts = async (req, res, next) => {
         { description: { $regex: search, $options: 'i' } },
       ];
     }
+    if (color) {
+      query.color = { $in: Array.isArray(color) ? color : [color] };
+    }
+    if (minPrice || maxPrice) {
+      query.regularPrice = {};
+      if (minPrice) {
+        query.regularPrice.$gte = parseFloat(minPrice);
+      }
+      if (maxPrice) {
+        query.regularPrice.$lte = parseFloat(maxPrice);
+      }
+    }
+    if (onSale === 'true') {
+      query.discountedPrice = { $ne: null, $gt: 0 };
+    }
     query.isAvailable = true;
 
     // Pagination
@@ -25,10 +52,27 @@ exports.getProducts = async (req, res, next) => {
     const limitNum = parseInt(limit);
     const skip = (pageNum - 1) * limitNum;
 
+    // Sort options
+    const sortOptions = {};
+    const sortOrderNum = sortOrder === 'asc' ? 1 : -1;
+    switch (sortBy) {
+      case 'popularity':
+        sortOptions.popularity = sortOrderNum;
+        break;
+      case 'price':
+        sortOptions.regularPrice = sortOrderNum;
+        break;
+      case 'name':
+        sortOptions.name = sortOrderNum;
+        break;
+      default:
+        sortOptions.createdAt = sortOrderNum;
+    }
+
     const products = await Product.find(query)
       .skip(skip)
       .limit(limitNum)
-      .sort({ createdAt: -1 });
+      .sort(sortOptions);
 
     const total = await Product.countDocuments(query);
 

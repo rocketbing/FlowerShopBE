@@ -56,15 +56,92 @@ const options = {
               description: 'Whether email is verified',
               example: false,
             },
-            address: {
+            provider: {
+              type: 'string',
+              enum: ['local', 'google'],
+              description: 'Authentication provider',
+              example: 'local',
+            },
+            googleId: {
+              type: 'string',
+              description: 'Google user ID (for Google OAuth users)',
+            },
+            homeAddress: {
               type: 'object',
+              description: 'User home address',
               properties: {
+                firstName: {
+                  type: 'string',
+                  description: 'First name',
+                  example: 'John',
+                },
+                lastName: {
+                  type: 'string',
+                  description: 'Last name',
+                  example: 'Doe',
+                },
+                phoneNumber: {
+                  type: 'string',
+                  description: 'Phone number',
+                  example: '123-456-7890',
+                },
                 street: { type: 'string' },
                 city: { type: 'string' },
                 state: { type: 'string' },
                 zipCode: { type: 'string' },
                 country: { type: 'string' },
               },
+              example: {
+                firstName: 'John',
+                lastName: 'Doe',
+                phoneNumber: '123-456-7890',
+                street: '123 Main St',
+                city: 'New York',
+                state: 'NY',
+                zipCode: '10001',
+                country: 'USA',
+              },
+            },
+            shippingAddress: {
+              type: 'array',
+              description: 'Array of shipping addresses',
+              items: {
+                type: 'object',
+                properties: {
+                  firstName: {
+                    type: 'string',
+                    description: 'First name',
+                    example: 'Jane',
+                  },
+                  lastName: {
+                    type: 'string',
+                    description: 'Last name',
+                    example: 'Smith',
+                  },
+                  phoneNumber: {
+                    type: 'string',
+                    description: 'Phone number',
+                    example: '987-654-3210',
+                  },
+                  street: { type: 'string' },
+                  city: { type: 'string' },
+                  state: { type: 'string' },
+                  zipCode: { type: 'string' },
+                  country: { type: 'string' },
+                },
+              },
+              example: [
+                {
+                  firstName: 'Jane',
+                  lastName: 'Smith',
+                  phoneNumber: '987-654-3210',
+                  street: '456 Oak Ave',
+                  city: 'Los Angeles',
+                  state: 'CA',
+                  zipCode: '90001',
+                  country: 'USA',
+                },
+              ],
             },
           },
         },
@@ -78,14 +155,71 @@ const options = {
             name: {
               type: 'string',
               description: 'Product name',
+              example: 'Red Roses Bouquet',
             },
             description: {
               type: 'string',
               description: 'Product description',
+              example: 'Beautiful red roses arranged in a bouquet',
+            },
+            stems: {
+              type: 'number',
+              description: 'Number of flower stems',
+              minimum: 1,
+              example: 12,
+            },
+            color: {
+              type: 'array',
+              items: {
+                type: 'string',
+              },
+              description: 'Flower colors',
+              example: ['red', 'white'],
+              minItems: 1,
+            },
+            regularPrice: {
+              type: 'number',
+              description: 'Regular price of the product',
+              minimum: 0,
+              example: 49.99,
+            },
+            discountedPrice: {
+              type: 'number',
+              nullable: true,
+              description: 'Discounted price (if on sale)',
+              minimum: 0,
+              example: 39.99,
             },
             price: {
               type: 'number',
-              description: 'Product price',
+              description: 'Current price (backward compatibility - same as regularPrice)',
+              minimum: 0,
+              example: 49.99,
+            },
+            currentPrice: {
+              type: 'number',
+              description: 'Current price (discounted if available, otherwise regular)',
+              minimum: 0,
+              example: 39.99,
+            },
+            quantity: {
+              type: 'number',
+              description: 'Product quantity per unit',
+              minimum: 1,
+              example: 1,
+            },
+            stock: {
+              type: 'number',
+              description: 'Product stock quantity',
+              minimum: 0,
+              example: 100,
+            },
+            popularity: {
+              type: 'number',
+              description: 'Popularity rating (1-5)',
+              minimum: 1,
+              maximum: 5,
+              example: 4,
             },
             category: {
               type: 'string',
@@ -100,34 +234,51 @@ const options = {
                 'other',
               ],
               description: 'Product category',
+              example: 'roses',
             },
             images: {
               type: 'array',
               items: {
                 type: 'object',
                 properties: {
-                  url: { type: 'string' },
-                  alt: { type: 'string' },
+                  url: {
+                    type: 'string',
+                    description: 'Image URL',
+                  },
+                  alt: {
+                    type: 'string',
+                    description: 'Image alt text',
+                  },
                 },
+                required: ['url'],
               },
-            },
-            stock: {
-              type: 'number',
-              description: 'Product stock quantity',
+              description: 'Product images',
             },
             isAvailable: {
               type: 'boolean',
               description: 'Product availability',
+              example: true,
             },
             rating: {
               type: 'number',
-              description: 'Product rating',
+              description: 'Product rating (0-5)',
+              minimum: 0,
+              maximum: 5,
+              example: 4.5,
             },
             numReviews: {
               type: 'number',
               description: 'Number of reviews',
+              minimum: 0,
+              example: 25,
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Product creation date',
             },
           },
+          required: ['name', 'description', 'stems', 'color', 'regularPrice', 'quantity', 'stock', 'category'],
         },
         Cart: {
           type: 'object',
@@ -192,13 +343,50 @@ const options = {
             },
             shippingAddress: {
               type: 'object',
+              description: 'Shipping address for the order',
               properties: {
-                street: { type: 'string' },
-                city: { type: 'string' },
-                state: { type: 'string' },
-                zipCode: { type: 'string' },
-                country: { type: 'string' },
+                firstName: {
+                  type: 'string',
+                  description: 'First name',
+                  example: 'John',
+                },
+                lastName: {
+                  type: 'string',
+                  description: 'Last name',
+                  example: 'Doe',
+                },
+                phoneNumber: {
+                  type: 'string',
+                  description: 'Phone number',
+                  example: '123-456-7890',
+                },
+                street: {
+                  type: 'string',
+                  description: 'Street address',
+                  example: '123 Main St',
+                },
+                city: {
+                  type: 'string',
+                  description: 'City',
+                  example: 'New York',
+                },
+                state: {
+                  type: 'string',
+                  description: 'State/Province',
+                  example: 'NY',
+                },
+                zipCode: {
+                  type: 'string',
+                  description: 'ZIP/Postal code',
+                  example: '10001',
+                },
+                country: {
+                  type: 'string',
+                  description: 'Country',
+                  example: 'USA',
+                },
               },
+              required: ['street', 'city', 'state', 'zipCode', 'country'],
             },
             paymentMethod: {
               type: 'string',

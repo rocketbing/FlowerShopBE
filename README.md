@@ -82,6 +82,9 @@ JWT_EXPIRE=7d
 STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key_here
 STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret_here
 
+# Google OAuth Configuration
+GOOGLE_CLIENT_ID=your_google_client_id_here
+
 # Email Configuration (for account activation)
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
@@ -96,6 +99,7 @@ FRONTEND_URL=http://localhost:3000
 - 如果使用 Gmail，需要生成应用专用密码（不是普通密码）
 - 访问：Google Account → Security → 2-Step Verification → App passwords
 - 其他邮件服务商请参考相应的 SMTP 配置
+- **详细设置指南**：请查看 [邮箱两步验证设置指南](./docs/EMAIL_2FA_SETUP.md)
 
 ### 3. 启动 MongoDB
 
@@ -154,11 +158,18 @@ http://localhost:3000/api-docs
 ### 认证相关 (`/api/auth`)
 
 - `POST /api/auth/register` - 用户注册（会发送激活邮件）
+- `POST /api/auth/google` - Google 账号登录/注册
 - `GET /api/auth/activate` - 激活账号（通过邮件链接）
 - `POST /api/auth/resend-activation` - 重发激活邮件
 - `POST /api/auth/login` - 用户登录（需要先激活邮箱）
 - `GET /api/auth/me` - 获取当前用户信息（需要认证）
 - `PUT /api/auth/profile` - 更新用户资料（需要认证）
+
+### 用户信息管理 (`/api/userinfo`)
+
+- `GET /api/userinfo` - 获取当前用户信息（需要认证）
+- `PUT /api/userinfo` - 更新当前用户信息（需要认证，可更新 name、phone、homeAddress、shippingAddress）
+- `GET /api/userinfo/all` - 获取所有用户信息（需要管理员权限，支持分页）
 
 ### 商品相关 (`/api/products`)
 
@@ -265,6 +276,17 @@ Content-Type: application/json
 
 **注意**：只有激活了邮箱的账号才能登录。如果邮箱未激活，会返回 403 错误。
 
+### 4. Google 账号登录
+
+```bash
+POST /api/auth/google
+Content-Type: application/json
+
+{
+  "idToken": "google_oauth_id_token_from_frontend"
+}
+```
+
 响应：
 ```json
 {
@@ -273,19 +295,26 @@ Content-Type: application/json
   "user": {
     "id": "...",
     "name": "John Doe",
-    "email": "john@example.com",
-    "role": "user"
+    "email": "john@gmail.com",
+    "role": "user",
+    "provider": "google",
+    "emailVerified": true
   }
 }
 ```
 
-### 3. 获取商品列表
+**注意**：
+- Google 账号登录会自动创建账号（如果不存在）
+- Google 账号默认已验证邮箱（emailVerified: true）
+- 如果邮箱已存在但使用本地注册，会关联 Google 账号
+
+### 5. 获取商品列表
 
 ```bash
 GET /api/products?page=1&limit=10&category=roses&search=red
 ```
 
-### 4. 添加商品到购物车
+### 6. 添加商品到购物车
 
 ```bash
 POST /api/cart
@@ -298,7 +327,7 @@ Content-Type: application/json
 }
 ```
 
-### 5. 创建订单
+### 7. 创建订单
 
 ```bash
 POST /api/orders
@@ -317,7 +346,7 @@ Content-Type: application/json
 }
 ```
 
-### 6. 创建支付意图
+### 8. 创建支付意图
 
 ```bash
 POST /api/payments/create-intent
@@ -348,6 +377,26 @@ Authorization: Bearer <your_jwt_token>
 - `carnations` - 康乃馨
 - `mixed` - 混合花束
 - `other` - 其他
+
+## Google OAuth 配置
+
+要启用 Google 账号登录功能，需要配置 Google OAuth：
+
+1. 访问 [Google Cloud Console](https://console.cloud.google.com/)
+2. 创建新项目或选择现有项目
+3. 启用 **Google+ API** 或 **Google Identity Services**
+4. 创建 **OAuth 2.0 客户端 ID**：
+   - 应用类型：Web 应用
+   - 授权重定向 URI：`http://localhost:3001`（开发环境）或你的前端域名
+5. 复制 **客户端 ID** 并添加到 `.env` 文件：
+   ```
+   GOOGLE_CLIENT_ID=your_google_client_id_here
+   ```
+
+**前端集成**：
+- 前端需要使用 Google Sign-In JavaScript 库获取 ID Token
+- 将获取到的 `idToken` 发送到后端 `/api/auth/google` 端点
+- 参考：[Google Sign-In JavaScript 文档](https://developers.google.com/identity/sign-in/web/sign-in)
 
 ## Stripe 支付配置
 

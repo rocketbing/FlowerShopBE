@@ -2,6 +2,10 @@ const User = require('../models/User');
 const { validationResult } = require('express-validator');
 const crypto = require('crypto');
 const { sendActivationEmail, isValidEmail } = require('../utils/emailService');
+const { OAuth2Client } = require('google-auth-library');
+
+// Initialize Google OAuth client
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // @desc    Register user
 // @route   POST /api/auth/register
@@ -48,6 +52,7 @@ exports.register = async (req, res, next) => {
       emailVerified: false,
       activationCode,
       activationCodeExpire,
+      provider: 'local',
     });
 
     // Send activation email asynchronously (don't block response)
@@ -75,6 +80,109 @@ exports.register = async (req, res, next) => {
       },
     });
   } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Google OAuth login
+// @route   POST /api/auth/google
+// @access  Public
+exports.googleLogin = async (req, res, next) => {
+  try {
+    const { idToken } = req.body;
+
+    if (!idToken) {
+      return res.status(400).json({
+        success: false,
+        message: 'Google ID token is required',
+      });
+    }
+
+    // Verify Google ID token
+    let ticket;
+    try {
+      // Log token type for debugging
+      console.log('🔍 Received token type:', idToken.startsWith('ya29.') ? 'Access Token (❌ Wrong)' : idToken.startsWith('eyJ') ? 'ID Token (✅ Correct)' : 'Unknown format');
+      console.log('🔍 Token preview:', idToken.substring(0, 50) + '...');
+      
+      ticket = await client.verifyIdToken({
+        idToken,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+      console.log('✅ Token verified successfully');
+    } catch (error) {
+      console.error('❌ Token verification failed:', error.message);
+      // Provide more detailed error message
+      if (idToken.startsWith('ya29.')) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid token type: Access Token received. Please use ID Token (credential) instead. Check frontend implementation.',
+        });
+      }
+      return res.status(400).json({
+        success: false,
+        message: `Invalid Google token: ${error.message}`,
+      });
+    }
+
+    const payload = ticket.getPayload();
+    const { sub: googleId, email, name, picture } = payload;
+
+    // Check if user exists with this email or Google ID
+    let user = await User.findOne({
+      $or: [
+        { email: email.toLowerCase() },
+        { googleId: googleId },
+      ],
+    });
+
+    if (user) {
+      // User exists - update Google ID and provider if not set
+      if (!user.googleId) {
+        user.googleId = googleId;
+      }
+      
+      // Set provider: if user has password, allow both local and google
+      // Otherwise, set to google
+      if (!user.password) {
+        user.provider = 'google';
+      } else if (user.provider === 'local') {
+        // Keep as local but allow Google login too
+        // User can login with either method
+      }
+
+      // Google accounts are always verified
+      user.emailVerified = true;
+      await user.save();
+    } else {
+      // Create new user with Google account
+      user = await User.create({
+        name,
+        email: email.toLowerCase(),
+        googleId,
+        provider: 'google',
+        emailVerified: true, // Google accounts are pre-verified
+        // No password required for Google OAuth users
+      });
+    }
+
+    // Generate JWT token
+    const token = user.getSignedJwtToken();
+
+    res.status(200).json({
+      success: true,
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        provider: user.provider,
+        emailVerified: user.emailVerified,
+      },
+    });
+  } catch (error) {
+    console.error('Google login error:', error);
     next(error);
   }
 };
@@ -255,6 +363,14 @@ exports.login = async (req, res, next) => {
       });
     }
 
+    // Check if user is using Google OAuth (no password)
+    if (user.provider === 'google' && !user.password) {
+      return res.status(400).json({
+        success: false,
+        message: 'This account uses Google login. Please use Google sign-in instead.',
+      });
+    }
+
     // Check if email is verified
     if (!user.emailVerified) {
       return res.status(403).json({
@@ -316,7 +432,8 @@ exports.updateProfile = async (req, res, next) => {
       name: req.body.name,
       email: req.body.email,
       phone: req.body.phone,
-      address: req.body.address,
+      homeAddress: req.body.homeAddress,
+      shippingAddress: req.body.shippingAddress,
     };
 
     const user = await User.findByIdAndUpdate(req.user.id, fieldsToUpdate, {

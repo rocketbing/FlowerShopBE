@@ -35,6 +35,18 @@ const { protect, authorize } = require('../middleware/auth');
  *                   - zipCode
  *                   - country
  *                 properties:
+ *                   firstName:
+ *                     type: string
+ *                     description: First name
+ *                     example: "John"
+ *                   lastName:
+ *                     type: string
+ *                     description: Last name
+ *                     example: "Doe"
+ *                   phoneNumber:
+ *                     type: string
+ *                     description: Phone number
+ *                     example: "123-456-7890"
  *                   street:
  *                     type: string
  *                     example: "123 Main St"

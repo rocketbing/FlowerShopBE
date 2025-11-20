@@ -8,7 +8,7 @@ exports.getCart = async (req, res, next) => {
   try {
     let cart = await Cart.findOne({ user: req.user.id }).populate(
       'items.product',
-      'name price images stock'
+      'name price regularPrice discountedPrice images stock stems color popularity'
     );
 
     if (!cart) {
@@ -71,16 +71,19 @@ exports.addToCart = async (req, res, next) => {
       }
       cart.items[itemIndex].quantity = newQuantity;
     } else {
-      // Add new item
+      // Add new item - use discounted price if available, otherwise regular price
+      const currentPrice = product.discountedPrice !== null && product.discountedPrice !== undefined 
+        ? product.discountedPrice 
+        : product.regularPrice || product.price;
       cart.items.push({
         product: productId,
         quantity,
-        price: product.price,
+        price: currentPrice,
       });
     }
 
     await cart.save();
-    await cart.populate('items.product', 'name price images stock');
+    await cart.populate('items.product', 'name price regularPrice discountedPrice images stock stems color popularity');
 
     res.status(200).json({
       success: true,
@@ -125,7 +128,7 @@ exports.updateCartItem = async (req, res, next) => {
 
     item.quantity = quantity;
     await cart.save();
-    await cart.populate('items.product', 'name price images stock');
+    await cart.populate('items.product', 'name price regularPrice discountedPrice images stock stems color popularity');
 
     res.status(200).json({
       success: true,
@@ -151,7 +154,7 @@ exports.removeFromCart = async (req, res, next) => {
 
     cart.items.pull(req.params.itemId);
     await cart.save();
-    await cart.populate('items.product', 'name price images stock');
+    await cart.populate('items.product', 'name price regularPrice discountedPrice images stock stems color popularity');
 
     res.status(200).json({
       success: true,

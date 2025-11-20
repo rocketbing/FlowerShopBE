@@ -29,16 +29,59 @@ const { protect, authorize } = require('../middleware/auth');
  *           type: string
  *         description: Search products by name or description
  *       - in: query
+ *         name: color
+ *         schema:
+ *           type: string
+ *         description: Filter by color (can be comma-separated for multiple colors)
+ *         example: "red,white"
+ *       - in: query
+ *         name: minPrice
+ *         schema:
+ *           type: number
+ *           minimum: 0
+ *         description: Minimum price filter
+ *         example: 20
+ *       - in: query
+ *         name: maxPrice
+ *         schema:
+ *           type: number
+ *           minimum: 0
+ *         description: Maximum price filter
+ *         example: 100
+ *       - in: query
+ *         name: onSale
+ *         schema:
+ *           type: boolean
+ *         description: Filter products on sale (with discounted price)
+ *         example: true
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [createdAt, regularPrice, popularity, rating, name]
+ *           default: createdAt
+ *         description: Sort field
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: desc
+ *         description: Sort order
+ *       - in: query
  *         name: page
  *         schema:
  *           type: integer
  *           default: 1
+ *           minimum: 1
  *         description: Page number
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
  *           default: 10
+ *           minimum: 1
+ *           maximum: 100
  *         description: Items per page
  *     responses:
  *       200:
@@ -143,8 +186,9 @@ router.get('/:id', getProduct);
  * @swagger
  * /api/products:
  *   post:
- *     summary: Create a new product
+ *     summary: Create a new product (Admin only)
  *     tags: [Products]
+ *     description: Only users with admin role can create products
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -156,9 +200,12 @@ router.get('/:id', getProduct);
  *             required:
  *               - name
  *               - description
- *               - price
- *               - category
+ *               - stems
+ *               - color
+ *               - regularPrice
+ *               - quantity
  *               - stock
+ *               - category
  *             properties:
  *               name:
  *                 type: string
@@ -166,9 +213,38 @@ router.get('/:id', getProduct);
  *               description:
  *                 type: string
  *                 example: Beautiful red roses arranged in a bouquet
- *               price:
+ *               stems:
  *                 type: number
+ *                 minimum: 1
+ *                 example: 12
+ *               color:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 minItems: 1
+ *                 example: ["red", "white"]
+ *               regularPrice:
+ *                 type: number
+ *                 minimum: 0
  *                 example: 49.99
+ *               discountedPrice:
+ *                 type: number
+ *                 nullable: true
+ *                 minimum: 0
+ *                 example: 39.99
+ *               quantity:
+ *                 type: number
+ *                 minimum: 1
+ *                 example: 1
+ *               stock:
+ *                 type: number
+ *                 minimum: 0
+ *                 example: 100
+ *               popularity:
+ *                 type: number
+ *                 minimum: 1
+ *                 maximum: 5
+ *                 example: 4
  *               category:
  *                 type: string
  *                 enum: [roses, tulips, lilies, sunflowers, orchids, carnations, mixed, other]
@@ -180,14 +256,21 @@ router.get('/:id', getProduct);
  *                   properties:
  *                     url:
  *                       type: string
+ *                       required: true
  *                     alt:
  *                       type: string
- *               stock:
- *                 type: number
- *                 example: 100
  *               isAvailable:
  *                 type: boolean
  *                 example: true
+ *               rating:
+ *                 type: number
+ *                 minimum: 0
+ *                 maximum: 5
+ *                 example: 0
+ *               numReviews:
+ *                 type: number
+ *                 minimum: 0
+ *                 example: 0
  *     responses:
  *       201:
  *         description: Product created successfully
@@ -234,8 +317,30 @@ router.post('/', protect, authorize('admin'), createProduct);
  *                 type: string
  *               description:
  *                 type: string
- *               price:
+ *               stems:
  *                 type: number
+ *                 minimum: 1
+ *               color:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               regularPrice:
+ *                 type: number
+ *                 minimum: 0
+ *               discountedPrice:
+ *                 type: number
+ *                 nullable: true
+ *                 minimum: 0
+ *               quantity:
+ *                 type: number
+ *                 minimum: 1
+ *               stock:
+ *                 type: number
+ *                 minimum: 0
+ *               popularity:
+ *                 type: number
+ *                 minimum: 1
+ *                 maximum: 5
  *               category:
  *                 type: string
  *                 enum: [roses, tulips, lilies, sunflowers, orchids, carnations, mixed, other]
@@ -243,10 +348,20 @@ router.post('/', protect, authorize('admin'), createProduct);
  *                 type: array
  *                 items:
  *                   type: object
- *               stock:
- *                 type: number
+ *                   properties:
+ *                     url:
+ *                       type: string
+ *                     alt:
+ *                       type: string
  *               isAvailable:
  *                 type: boolean
+ *               rating:
+ *                 type: number
+ *                 minimum: 0
+ *                 maximum: 5
+ *               numReviews:
+ *                 type: number
+ *                 minimum: 0
  *     responses:
  *       200:
  *         description: Product updated successfully

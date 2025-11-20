@@ -20,20 +20,66 @@ const UserSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: [true, 'Please add a password'],
+    required: function() {
+      return !this.googleId; // Password not required if using Google OAuth
+    },
     minlength: 6,
     select: false,
+  },
+  googleId: {
+    type: String,
+    select: false,
+    sparse: true, // Allows multiple null values
+  },
+  provider: {
+    type: String,
+    enum: ['local', 'google'],
+    default: 'local',
   },
   phone: {
     type: String,
     trim: true,
   },
-  address: {
+  homeAddress: {
+    firstName: {
+      type: String,
+      trim: true,
+    },
+    lastName: {
+      type: String,
+      trim: true,
+    },
+    phoneNumber: {
+      type: String,
+      trim: true,
+    },
     street: String,
     city: String,
     state: String,
     zipCode: String,
     country: String,
+  },
+  shippingAddress: {
+    type: [{
+      firstName: {
+        type: String,
+        trim: true,
+      },
+      lastName: {
+        type: String,
+        trim: true,
+      },
+      phoneNumber: {
+        type: String,
+        trim: true,
+      },
+      street: String,
+      city: String,
+      state: String,
+      zipCode: String,
+      country: String,
+    }],
+    default: [],
   },
   role: {
     type: String,
@@ -42,7 +88,9 @@ const UserSchema = new mongoose.Schema({
   },
   emailVerified: {
     type: Boolean,
-    default: false,
+    default: function() {
+      return this.provider === 'google'; // Google accounts are pre-verified
+    },
   },
   activationCode: {
     type: String,
@@ -63,8 +111,13 @@ UserSchema.index({ email: 1 }); // Already unique, but explicit index
 UserSchema.index({ emailVerified: 1 }); // For querying unverified users
 UserSchema.index({ createdAt: -1 }); // For sorting by creation date
 
-// Encrypt password using bcrypt
+// Encrypt password using bcrypt (only for local accounts)
 UserSchema.pre('save', async function (next) {
+  // Skip password hashing for Google OAuth users
+  if (this.provider === 'google' || !this.password) {
+    return next();
+  }
+
   if (!this.isModified('password')) {
     next();
   }
