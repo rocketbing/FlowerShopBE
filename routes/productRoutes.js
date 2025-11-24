@@ -32,8 +32,8 @@ const { protect, authorize } = require('../middleware/auth');
  *         name: color
  *         schema:
  *           type: string
- *         description: Filter by color (can be comma-separated for multiple colors)
- *         example: "red,white"
+ *         description: Filter by color (case-insensitive search)
+ *         example: "red"
  *       - in: query
  *         name: minPrice
  *         schema:
@@ -58,7 +58,7 @@ const { protect, authorize } = require('../middleware/auth');
  *         name: sortBy
  *         schema:
  *           type: string
- *           enum: [createdAt, regularPrice, popularity, rating, name]
+ *           enum: [createdAt, regularPrice, popularity, name]
  *           default: createdAt
  *         description: Sort field
  *       - in: query
@@ -94,22 +94,25 @@ const { protect, authorize } = require('../middleware/auth');
  *                 success:
  *                   type: boolean
  *                   example: true
- *                 count:
- *                   type: integer
- *                   example: 10
- *                 total:
- *                   type: integer
- *                   example: 50
- *                 page:
- *                   type: integer
- *                   example: 1
- *                 pages:
- *                   type: integer
- *                   example: 5
  *                 data:
  *                   type: array
  *                   items:
  *                     $ref: '#/components/schemas/Product'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     page:
+ *                       type: integer
+ *                       description: Current page number
+ *                       example: 1
+ *                     size:
+ *                       type: integer
+ *                       description: Number of items per page
+ *                       example: 10
+ *                     total:
+ *                       type: integer
+ *                       description: Total number of products
+ *                       example: 50
  */
 router.get('/', getProducts);
 
@@ -138,8 +141,6 @@ router.get('/', getProducts);
  *                 success:
  *                   type: boolean
  *                   example: true
- *                 count:
- *                   type: integer
  *                 data:
  *                   type: array
  *                   items:
@@ -204,7 +205,6 @@ router.get('/:id', getProduct);
  *               - color
  *               - regularPrice
  *               - quantity
- *               - stock
  *               - category
  *             properties:
  *               name:
@@ -218,11 +218,9 @@ router.get('/:id', getProduct);
  *                 minimum: 1
  *                 example: 12
  *               color:
- *                 type: array
- *                 items:
- *                   type: string
- *                 minItems: 1
- *                 example: ["red", "white"]
+ *                 type: string
+ *                 description: Flower color
+ *                 example: "red"
  *               regularPrice:
  *                 type: number
  *                 minimum: 0
@@ -235,41 +233,37 @@ router.get('/:id', getProduct);
  *               quantity:
  *                 type: number
  *                 minimum: 1
+ *                 description: Product quantity (isAvailable is automatically set based on quantity > 0)
  *                 example: 1
- *               stock:
- *                 type: number
- *                 minimum: 0
- *                 example: 100
  *               popularity:
  *                 type: number
  *                 minimum: 1
  *                 maximum: 5
+ *                 default: 3
  *                 example: 4
  *               category:
  *                 type: string
  *                 enum: [roses, tulips, lilies, sunflowers, orchids, carnations, mixed, other]
  *                 example: roses
  *               images:
- *                 type: array
- *                 items:
- *                   type: object
- *                   properties:
- *                     url:
- *                       type: string
- *                       required: true
- *                     alt:
- *                       type: string
+ *                 type: object
+ *                 description: Product image
+ *                 properties:
+ *                   url:
+ *                     type: string
+ *                     required: true
+ *                     example: "https://example.com/image.jpg"
+ *                   alt:
+ *                     type: string
+ *                     example: "Red roses bouquet"
  *               isAvailable:
  *                 type: boolean
+ *                 description: Automatically set based on quantity (true if quantity > 0)
  *                 example: true
- *               rating:
- *                 type: number
- *                 minimum: 0
- *                 maximum: 5
- *                 example: 0
  *               numReviews:
  *                 type: number
  *                 minimum: 0
+ *                 default: 0
  *                 example: 0
  *     responses:
  *       201:
@@ -321,9 +315,8 @@ router.post('/', protect, authorize('admin'), createProduct);
  *                 type: number
  *                 minimum: 1
  *               color:
- *                 type: array
- *                 items:
- *                   type: string
+ *                 type: string
+ *                 description: Flower color
  *               regularPrice:
  *                 type: number
  *                 minimum: 0
@@ -334,9 +327,7 @@ router.post('/', protect, authorize('admin'), createProduct);
  *               quantity:
  *                 type: number
  *                 minimum: 1
- *               stock:
- *                 type: number
- *                 minimum: 0
+ *                 description: Product quantity (isAvailable is automatically set based on quantity > 0)
  *               popularity:
  *                 type: number
  *                 minimum: 1
@@ -345,20 +336,16 @@ router.post('/', protect, authorize('admin'), createProduct);
  *                 type: string
  *                 enum: [roses, tulips, lilies, sunflowers, orchids, carnations, mixed, other]
  *               images:
- *                 type: array
- *                 items:
- *                   type: object
- *                   properties:
- *                     url:
- *                       type: string
- *                     alt:
- *                       type: string
+ *                 type: object
+ *                 description: Product image
+ *                 properties:
+ *                   url:
+ *                     type: string
+ *                   alt:
+ *                     type: string
  *               isAvailable:
  *                 type: boolean
- *               rating:
- *                 type: number
- *                 minimum: 0
- *                 maximum: 5
+ *                 description: Automatically set based on quantity (true if quantity > 0)
  *               numReviews:
  *                 type: number
  *                 minimum: 0

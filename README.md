@@ -76,7 +76,7 @@ MONGODB_URI=mongodb://localhost:27017/flowershop
 
 # JWT Configuration
 JWT_SECRET=your_jwt_secret_key_here
-JWT_EXPIRE=7d
+JWT_EXPIRE=2d
 
 # Stripe Configuration
 STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key_here

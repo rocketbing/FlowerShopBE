@@ -62,28 +62,61 @@ exports.updateUserInfo = async (req, res, next) => {
         updateFields.homeAddress = homeAddress;
       }
     }
+    // Handle shippingAddress separately - need to fetch user first to push to array
+    let shouldUpdateShippingAddress = false;
+    let shippingAddressToAdd = null;
+
     if (shippingAddress !== undefined) {
-      // Validate shippingAddress is an array
-      if (!Array.isArray(shippingAddress)) {
+      // If shippingAddress is an object (not array), push it to existing array
+      if (typeof shippingAddress === 'object' && !Array.isArray(shippingAddress)) {
+        shouldUpdateShippingAddress = true;
+        shippingAddressToAdd = shippingAddress;
+      } 
+      // If shippingAddress is an array, replace the entire array
+      else if (Array.isArray(shippingAddress)) {
+        updateFields.shippingAddress = shippingAddress;
+      } 
+      else {
         return res.status(400).json({
           success: false,
-          message: 'ShippingAddress must be an array',
+          message: 'ShippingAddress must be an object or an array',
         });
       }
-      updateFields.shippingAddress = shippingAddress;
     }
 
     // Update user
-    const user = await User.findByIdAndUpdate(
-      req.user.id,
-      updateFields,
-      {
-        new: true,
-        runValidators: true,
-      }
-    ).select('-password -activationCode -activationCodeExpire -googleId');
+    const user = await User.findById(req.user.id);
 
     if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    // Apply other updates
+    if (Object.keys(updateFields).length > 0) {
+      Object.assign(user, updateFields);
+    }
+
+    // Handle shippingAddress push if needed
+    if (shouldUpdateShippingAddress && shippingAddressToAdd) {
+      // Ensure shippingAddress array exists
+      if (!user.shippingAddress) {
+        user.shippingAddress = [];
+      }
+      // Push the new address to the array
+      user.shippingAddress.push(shippingAddressToAdd);
+    }
+
+    // Save the user
+    await user.save();
+
+    // Select fields for response
+    const updatedUser = await User.findById(req.user.id)
+      .select('-password -activationCode -activationCodeExpire -googleId');
+
+    if (!updatedUser) {
       return res.status(404).json({
         success: false,
         message: 'User not found',
@@ -93,16 +126,16 @@ exports.updateUserInfo = async (req, res, next) => {
     res.status(200).json({
       success: true,
       data: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        homeAddress: user.homeAddress || null,
-        shippingAddress: user.shippingAddress || [],
-        role: user.role,
-        emailVerified: user.emailVerified,
-        provider: user.provider,
-        createdAt: user.createdAt,
+        id: updatedUser._id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        phone: updatedUser.phone,
+        homeAddress: updatedUser.homeAddress || null,
+        shippingAddress: updatedUser.shippingAddress || [],
+        role: updatedUser.role,
+        emailVerified: updatedUser.emailVerified,
+        provider: updatedUser.provider,
+        createdAt: updatedUser.createdAt,
       },
     });
   } catch (error) {

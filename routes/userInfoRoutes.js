@@ -135,47 +135,87 @@ router.get('/', protect, getCurrentUserInfo);
  *                   zipCode: "10001"
  *                   country: "USA"
  *               shippingAddress:
- *                 type: array
- *                 description: Array of shipping addresses
- *                 items:
- *                   type: object
- *                   properties:
- *                     firstName:
- *                       type: string
- *                       description: First name
- *                       example: "Jane"
- *                     lastName:
- *                       type: string
- *                       description: Last name
- *                       example: "Smith"
- *                     phoneNumber:
- *                       type: string
- *                       description: Phone number
- *                       example: "987-654-3210"
- *                     street:
- *                       type: string
- *                       example: "456 Oak Ave"
- *                     city:
- *                       type: string
- *                       example: "Los Angeles"
- *                     state:
- *                       type: string
- *                       example: "CA"
- *                     zipCode:
- *                       type: string
- *                       example: "90001"
- *                     country:
- *                       type: string
- *                       example: "USA"
- *                 example:
- *                   - firstName: "Jane"
- *                     lastName: "Smith"
- *                     phoneNumber: "987-654-3210"
- *                     street: "456 Oak Ave"
- *                     city: "Los Angeles"
- *                     state: "CA"
- *                     zipCode: "90001"
- *                     country: "USA"
+ *                 oneOf:
+ *                   - type: object
+ *                     description: Single shipping address object to add to the array
+ *                     properties:
+ *                       firstName:
+ *                         type: string
+ *                         description: First name
+ *                         example: "Jane"
+ *                       lastName:
+ *                         type: string
+ *                         description: Last name
+ *                         example: "Smith"
+ *                       phoneNumber:
+ *                         type: string
+ *                         description: Phone number
+ *                         example: "987-654-3210"
+ *                       street:
+ *                         type: string
+ *                         example: "456 Oak Ave"
+ *                       city:
+ *                         type: string
+ *                         example: "Los Angeles"
+ *                       state:
+ *                         type: string
+ *                         example: "CA"
+ *                       zipCode:
+ *                         type: string
+ *                         example: "90001"
+ *                       country:
+ *                         type: string
+ *                         example: "USA"
+ *                     example:
+ *                       firstName: "Jane"
+ *                       lastName: "Smith"
+ *                       phoneNumber: "987-654-3210"
+ *                       street: "456 Oak Ave"
+ *                       city: "Los Angeles"
+ *                       state: "CA"
+ *                       zipCode: "90001"
+ *                       country: "USA"
+ *                   - type: array
+ *                     description: Array of shipping addresses (replaces entire array)
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         firstName:
+ *                           type: string
+ *                           description: First name
+ *                           example: "Jane"
+ *                         lastName:
+ *                           type: string
+ *                           description: Last name
+ *                           example: "Smith"
+ *                         phoneNumber:
+ *                           type: string
+ *                           description: Phone number
+ *                           example: "987-654-3210"
+ *                         street:
+ *                           type: string
+ *                           example: "456 Oak Ave"
+ *                         city:
+ *                           type: string
+ *                           example: "Los Angeles"
+ *                         state:
+ *                           type: string
+ *                           example: "CA"
+ *                         zipCode:
+ *                           type: string
+ *                           example: "90001"
+ *                         country:
+ *                           type: string
+ *                           example: "USA"
+ *                     example:
+ *                       - firstName: "Jane"
+ *                         lastName: "Smith"
+ *                         phoneNumber: "987-654-3210"
+ *                         street: "456 Oak Ave"
+ *                         city: "Los Angeles"
+ *                         state: "CA"
+ *                         zipCode: "90001"
+ *                         country: "USA"
  *     responses:
  *       200:
  *         description: User information updated successfully

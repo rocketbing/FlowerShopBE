@@ -18,14 +18,9 @@ const ProductSchema = new mongoose.Schema({
     default: 1,
   },
   color: {
-    type: [String],
-    required: [true, 'Please add at least one color'],
-    validate: {
-      validator: function(v) {
-        return v && v.length > 0;
-      },
-      message: 'At least one color is required',
-    },
+    type: String,
+    required: [true, 'Please add a color'],
+    trim: true,
   },
   // Pricing
   regularPrice: {
@@ -38,23 +33,12 @@ const ProductSchema = new mongoose.Schema({
     min: [0, 'Discounted price must be positive'],
     default: null,
   },
-  // Legacy price field for backward compatibility
-  price: {
-    type: Number,
-    min: [0, 'Price must be positive'],
-  },
-  // Quantity and stock
+  // Quantity
   quantity: {
     type: Number,
     required: [true, 'Please add quantity'],
     min: [1, 'Quantity must be at least 1'],
     default: 1,
-  },
-  stock: {
-    type: Number,
-    required: [true, 'Please add stock quantity'],
-    min: [0, 'Stock cannot be negative'],
-    default: 0,
   },
   // Popularity rating (1-5)
   popularity: {
@@ -77,24 +61,19 @@ const ProductSchema = new mongoose.Schema({
       'other',
     ],
   },
-  images: [
-    {
-      url: {
-        type: String,
-        required: true,
-      },
-      alt: String,
+  images: {
+    url: {
+      type: String,
+      required: true,
     },
-  ],
+    alt: {
+      type: String,
+      default: '',
+    },
+  },
   isAvailable: {
     type: Boolean,
     default: true,
-  },
-  rating: {
-    type: Number,
-    min: 0,
-    max: 5,
-    default: 0,
   },
   numReviews: {
     type: Number,
@@ -106,17 +85,11 @@ const ProductSchema = new mongoose.Schema({
   },
 });
 
-// Virtual for getting current price (discounted if available, otherwise regular)
-ProductSchema.virtual('currentPrice').get(function() {
-  return this.discountedPrice !== null && this.discountedPrice !== undefined 
-    ? this.discountedPrice 
-    : this.regularPrice;
-});
-
-// Pre-save hook to sync price field with regularPrice for backward compatibility
+// Pre-save hook to automatically set isAvailable based on quantity
 ProductSchema.pre('save', function(next) {
-  if (this.isNew || this.isModified('regularPrice')) {
-    this.price = this.regularPrice;
+  // If quantity is greater than 0, set isAvailable to true, otherwise false
+  if (this.quantity !== undefined && this.quantity !== null) {
+    this.isAvailable = this.quantity > 0;
   }
   next();
 });

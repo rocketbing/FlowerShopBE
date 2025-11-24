@@ -31,7 +31,8 @@ exports.getProducts = async (req, res, next) => {
       ];
     }
     if (color) {
-      query.color = { $in: Array.isArray(color) ? color : [color] };
+      // Color is now a string, support exact match or case-insensitive search
+      query.color = { $regex: color, $options: 'i' };
     }
     if (minPrice || maxPrice) {
       query.regularPrice = {};
@@ -78,11 +79,12 @@ exports.getProducts = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      count: products.length,
-      total,
-      page: pageNum,
-      pages: Math.ceil(total / limitNum),
       data: products,
+      pagination: {
+        page: pageNum,
+        size: limitNum,
+        total,
+      },
     });
   } catch (error) {
     next(error);

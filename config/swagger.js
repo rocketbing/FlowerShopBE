@@ -169,13 +169,9 @@ const options = {
               example: 12,
             },
             color: {
-              type: 'array',
-              items: {
-                type: 'string',
-              },
-              description: 'Flower colors',
-              example: ['red', 'white'],
-              minItems: 1,
+              type: 'string',
+              description: 'Flower color',
+              example: 'red',
             },
             regularPrice: {
               type: 'number',
@@ -190,29 +186,11 @@ const options = {
               minimum: 0,
               example: 39.99,
             },
-            price: {
-              type: 'number',
-              description: 'Current price (backward compatibility - same as regularPrice)',
-              minimum: 0,
-              example: 49.99,
-            },
-            currentPrice: {
-              type: 'number',
-              description: 'Current price (discounted if available, otherwise regular)',
-              minimum: 0,
-              example: 39.99,
-            },
             quantity: {
               type: 'number',
-              description: 'Product quantity per unit',
+              description: 'Product quantity per unit (isAvailable is automatically set based on quantity > 0)',
               minimum: 1,
               example: 1,
-            },
-            stock: {
-              type: 'number',
-              description: 'Product stock quantity',
-              minimum: 0,
-              example: 100,
             },
             popularity: {
               type: 'number',
@@ -237,34 +215,25 @@ const options = {
               example: 'roses',
             },
             images: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  url: {
-                    type: 'string',
-                    description: 'Image URL',
-                  },
-                  alt: {
-                    type: 'string',
-                    description: 'Image alt text',
-                  },
+              type: 'object',
+              description: 'Product image',
+              properties: {
+                url: {
+                  type: 'string',
+                  description: 'Image URL',
+                  required: true,
                 },
-                required: ['url'],
+                alt: {
+                  type: 'string',
+                  description: 'Image alt text',
+                },
               },
-              description: 'Product images',
+              required: ['url'],
             },
             isAvailable: {
               type: 'boolean',
-              description: 'Product availability',
+              description: 'Product availability (automatically set based on quantity: true if quantity > 0)',
               example: true,
-            },
-            rating: {
-              type: 'number',
-              description: 'Product rating (0-5)',
-              minimum: 0,
-              maximum: 5,
-              example: 4.5,
             },
             numReviews: {
               type: 'number',
@@ -278,7 +247,7 @@ const options = {
               description: 'Product creation date',
             },
           },
-          required: ['name', 'description', 'stems', 'color', 'regularPrice', 'quantity', 'stock', 'category'],
+          required: ['name', 'description', 'stems', 'color', 'regularPrice', 'quantity', 'category'],
         },
         Cart: {
           type: 'object',
