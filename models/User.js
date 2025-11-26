@@ -100,6 +100,14 @@ const UserSchema = new mongoose.Schema({
     type: Date,
     select: false,
   },
+  resetCode: {
+    type: String,
+    select: false,
+  },
+  resetCodeExpire: {
+    type: Date,
+    select: false,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

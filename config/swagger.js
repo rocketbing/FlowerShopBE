@@ -375,6 +375,109 @@ const options = {
             },
           },
         },
+        DiscountCode: {
+          type: 'object',
+          properties: {
+            _id: {
+              type: 'string',
+              description: 'Discount code ID',
+            },
+            code: {
+              type: 'string',
+              description: 'Discount code (uppercase)',
+              example: 'SAVE20',
+            },
+            description: {
+              type: 'string',
+              description: 'Description of the discount code',
+              example: '20% off on all products',
+            },
+            discountType: {
+              type: 'string',
+              enum: ['percentage', 'fixed'],
+              description: 'Type of discount',
+              example: 'percentage',
+            },
+            discountValue: {
+              type: 'number',
+              description: 'Discount value (percentage 0-100 or fixed amount)',
+              minimum: 0,
+              example: 20,
+            },
+            minPurchase: {
+              type: 'number',
+              description: 'Minimum purchase amount required',
+              minimum: 0,
+              example: 50,
+            },
+            maxDiscount: {
+              type: 'number',
+              nullable: true,
+              description: 'Maximum discount amount (for percentage discounts)',
+              minimum: 0,
+              example: 100,
+            },
+            validFrom: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Start date',
+              example: '2024-01-01T00:00:00Z',
+            },
+            validTo: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Expiration date',
+              example: '2024-12-31T23:59:59Z',
+            },
+            usageLimit: {
+              type: 'number',
+              nullable: true,
+              description: 'Maximum number of times code can be used (null = unlimited)',
+              minimum: 0,
+              example: 100,
+            },
+            usedCount: {
+              type: 'number',
+              description: 'Number of times code has been used',
+              minimum: 0,
+              example: 5,
+            },
+            oneTimeUse: {
+              type: 'boolean',
+              description: 'Can only be used once per user',
+              example: false,
+            },
+            applicableCategories: {
+              type: 'array',
+              description: 'Applicable categories (empty = all categories)',
+              items: {
+                type: 'string',
+                enum: ['roses', 'tulips', 'lilies', 'sunflowers', 'orchids', 'carnations', 'mixed', 'other'],
+              },
+              example: ['roses', 'tulips'],
+            },
+            isActive: {
+              type: 'boolean',
+              description: 'Whether the code is active',
+              example: true,
+            },
+            createdBy: {
+              type: 'string',
+              description: 'User ID who created the code',
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Creation date',
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Last update date',
+            },
+          },
+          required: ['code', 'discountType', 'discountValue', 'validTo'],
+        },
         Error: {
           type: 'object',
           properties: {

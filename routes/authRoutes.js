@@ -9,6 +9,8 @@ const {
   activateAccount,
   resendActivation,
   googleLogin,
+  requestReset,
+  resetPassword,
 } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
 
@@ -374,5 +376,104 @@ router.get('/activate', activateAccount);
  *         description: Failed to send email
  */
 router.post('/resend-activation', resendActivation);
+
+/**
+ * @swagger
+ * /api/auth/request-reset:
+ *   post:
+ *     summary: Request password reset
+ *     tags: [Authentication]
+ *     description: Send password reset email to user
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: User email address
+ *                 example: user@example.com
+ *     responses:
+ *       200:
+ *         description: If email exists, reset link has been sent
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "If an account with that email exists, a password reset link has been sent."
+ *       400:
+ *         description: Invalid email format
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post('/request-reset', requestReset);
+
+/**
+ * @swagger
+ * /api/auth/reset-password:
+ *   post:
+ *     summary: Reset password with reset code
+ *     tags: [Authentication]
+ *     description: Reset user password using email, reset code, and new password
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *               - resetCode
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: User email address
+ *                 example: user@example.com
+ *               password:
+ *                 type: string
+ *                 description: New password (minimum 6 characters)
+ *                 minLength: 6
+ *                 example: "newPassword123"
+ *               resetCode:
+ *                 type: string
+ *                 description: Reset code from email link
+ *                 example: "abc123def456..."
+ *     responses:
+ *       200:
+ *         description: Password reset successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Password has been reset successfully. Please login with your new password."
+ *       400:
+ *         description: Invalid reset code, expired code, or validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post('/reset-password', resetPassword);
 
 module.exports = router;

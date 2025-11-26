@@ -340,8 +340,138 @@ const sendActivationEmail = async (email, name, activationCode) => {
   }
 };
 
+// Send reset password email
+const sendResetPasswordEmail = async (email, name, resetCode) => {
+  try {
+    console.log(`Attempting to send reset password email to: ${email}`);
+
+    // Skip connection verification to reduce latency
+    if (!emailService.isConfigured || !emailService.transporter) {
+      const isConnected = await emailService.verifyConnection();
+      if (!isConnected) {
+        throw new Error('SMTP connection verification failed');
+      }
+    }
+
+    // Create reset password link with three parameters: email, resetCode, true
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const resetLink = `${frontendUrl}/reset-password?email=${encodeURIComponent(
+      email
+    )}&resetCode=${resetCode}&verified=true`;
+
+    console.log('Reset password link generated:', resetLink);
+
+    // Send email
+    const result = await emailService.sendMail({
+      to: email,
+      subject: 'Reset Your Flower Shop Password',
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              line-height: 1.6;
+              color: #333;
+            }
+            .container {
+              max-width: 600px;
+              margin: 0 auto;
+              padding: 20px;
+            }
+            .header {
+              background-color: #FF6B6B;
+              color: white;
+              padding: 20px;
+              text-align: center;
+              border-radius: 5px 5px 0 0;
+            }
+            .content {
+              background-color: #f9f9f9;
+              padding: 30px;
+              border-radius: 0 0 5px 5px;
+            }
+            .button {
+              display: inline-block;
+              padding: 12px 30px;
+              background-color: #FF6B6B;
+              color: white;
+              text-decoration: none;
+              border-radius: 5px;
+              margin: 20px 0;
+            }
+            .footer {
+              text-align: center;
+              margin-top: 20px;
+              color: #666;
+              font-size: 12px;
+            }
+            .warning {
+              background-color: #fff3cd;
+              border-left: 4px solid #ffc107;
+              padding: 12px;
+              margin: 20px 0;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>🔐 Reset Your Password</h1>
+            </div>
+            <div class="content">
+              <p>Dear ${name},</p>
+              <p>We received a request to reset your password. Please click the button below to reset your password:</p>
+              <div style="text-align: center;">
+                <a href="${resetLink}" class="button">Reset Password</a>
+              </div>
+              <p>Or copy and paste the following link into your browser:</p>
+              <p style="word-break: break-all; color: #FF6B6B;">${resetLink}</p>
+              <div class="warning">
+                <p><strong>Important Notes:</strong></p>
+                <ul>
+                  <li>This link is valid for 1 hour</li>
+                  <li>If you did not request a password reset, please ignore this email</li>
+                  <li>Your password will remain unchanged if you don't click the link</li>
+                </ul>
+              </div>
+            </div>
+            <div class="footer">
+              <p>This email is automatically sent by the Flower Shop system. Please do not reply.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+      text: `
+        Dear ${name},
+
+        We received a request to reset your password. Please click the following link to reset your password:
+
+        ${resetLink}
+
+        This link is valid for 1 hour.
+
+        If you did not request a password reset, please ignore this email.
+
+        This email is automatically sent by the Flower Shop system. Please do not reply.
+      `,
+    });
+
+    return result;
+  } catch (error) {
+    console.error('❌ Error sending reset password email:');
+    console.error('Error code:', error.code);
+    console.error('Error message:', error.message || error.error);
+    throw error;
+  }
+};
+
 module.exports = {
   sendActivationEmail,
+  sendResetPasswordEmail,
   isValidEmail,
   emailService,
   getEmailStatus: () => emailService.getStatus(),
