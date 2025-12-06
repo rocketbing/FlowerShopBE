@@ -2,14 +2,103 @@ const nodemailer = require('nodemailer');
 
 /**
  * Enhanced Email Service with App Password Support
- * Supports Gmail, Hotmail/Outlook with 2FA and App Passwords
+ * Supports Gmail, Google Workspace (企业邮箱), Hotmail/Outlook with 2FA and App Passwords
  * Includes comprehensive error handling and connection verification
+ * 
+ * ⚠️ SECURITY WARNING: Never use personal email accounts for system emails!
+ * Use a dedicated business email account (Google Workspace recommended) to avoid security risks.
+ * 
+ * Google Workspace Configuration:
+ * - SMTP_HOST: smtp.gmail.com
+ * - SMTP_PORT: 587
+ * - SMTP_USER: your_email@yourdomain.com (企业邮箱地址)
+ * - SMTP_PASS: App Password (应用专用密码)
  */
 class EmailService {
   constructor() {
     this.transporter = null;
     this.isConfigured = false;
     this.initializeTransporter();
+  }
+
+  /**
+   * Check if email is a personal email that should not be used for system emails
+   * @param {string} email - Email address to check
+   * @returns {boolean} - True if it's a personal email that should be blocked
+   */
+  isPersonalEmail(email) {
+    if (!email) return false;
+    
+    const emailLower = email.toLowerCase();
+    
+    // List of known personal emails that should not be used
+    const blockedPersonalEmails = [
+      'torontobing@gmail.com',
+      'torontobing2022@gmail.com',
+    ];
+    
+    // Check against blocked list
+    if (blockedPersonalEmails.includes(emailLower)) {
+      return true;
+    }
+    
+    // Check for common personal email patterns (optional - can be enabled if needed)
+    // const personalPatterns = [
+    //   /^[a-z0-9]+(?:[._-][a-z0-9]+)*@gmail\.com$/i,
+    //   /^[a-z0-9]+(?:[._-][a-z0-9]+)*@hotmail\.com$/i,
+    //   /^[a-z0-9]+(?:[._-][a-z0-9]+)*@outlook\.com$/i,
+    // ];
+    // 
+    // return personalPatterns.some(pattern => pattern.test(email));
+    
+    return false;
+  }
+
+  /**
+   * Validate email configuration and warn about personal email usage
+   * @param {string} email - Email address to validate
+   * @returns {boolean} - True if email is safe to use
+   */
+  validateEmailConfig(email) {
+    if (!email) {
+      return false;
+    }
+
+    if (this.isPersonalEmail(email)) {
+      console.error('\n🚨 ============================================');
+      console.error('🚨 SECURITY WARNING: PERSONAL EMAIL DETECTED');
+      console.error('🚨 ============================================');
+      console.error(`🚨 Email: ${email}`);
+      console.error('🚨');
+      console.error('🚨 ⚠️  DO NOT USE PERSONAL EMAIL ACCOUNTS FOR SYSTEM EMAILS!');
+      console.error('🚨');
+      console.error('🚨 Reasons:');
+      console.error('🚨   • Personal emails can receive spam/bounce notifications');
+      console.error('🚨   • Security risk if account is compromised');
+      console.error('🚨   • Violates email service provider policies');
+      console.error('🚨   • Can lead to account suspension');
+      console.error('🚨');
+      console.error('🚨 ✅ SOLUTION: Use a dedicated business email account');
+      console.error('🚨   Examples:');
+      console.error('🚨   • noreply@yourdomain.com');
+      console.error('🚨   • support@yourdomain.com');
+      console.error('🚨   • notifications@yourdomain.com');
+      console.error('🚨');
+      console.error('🚨 Please update SMTP_USER in .env file immediately!');
+      console.error('🚨 ============================================\n');
+      
+      // In production, you might want to throw an error instead
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error(
+          'SECURITY ERROR: Personal email accounts cannot be used for system emails. ' +
+          'Please use a dedicated business email account.'
+        );
+      }
+      
+      return false;
+    }
+
+    return true;
   }
 
   /**
@@ -22,6 +111,13 @@ class EmailService {
         console.warn(
           '⚠️ Email configuration incomplete. SMTP_USER and SMTP_PASS required in .env file.'
         );
+        return;
+      }
+
+      // ⚠️ SECURITY CHECK: Validate email is not a personal email
+      if (!this.validateEmailConfig(process.env.SMTP_USER)) {
+        console.error('❌ Email service initialization blocked due to personal email usage.');
+        this.isConfigured = false;
         return;
       }
 
@@ -52,6 +148,7 @@ class EmailService {
       console.log(`📧 SMTP Port: ${smtpPort}`);
       console.log(`📧 Configured email: ${process.env.SMTP_USER}`);
       console.log('📧 Ready to send emails with App Password authentication');
+      console.log('✅ Email configuration validated - using business email account');
     } catch (error) {
       console.error('❌ Failed to initialize email transporter:', error.message);
       this.isConfigured = false;
@@ -106,6 +203,14 @@ class EmailService {
         );
       }
 
+      // ⚠️ SECURITY CHECK: Re-validate email configuration before sending
+      if (this.isPersonalEmail(process.env.SMTP_USER)) {
+        throw new Error(
+          'SECURITY ERROR: Cannot send emails using personal email account. ' +
+          'Please use a dedicated business email account in SMTP_USER.'
+        );
+      }
+
       // Validate required mail options
       if (!mailOptions.to) {
         throw new Error('Recipient email address is required');
@@ -119,11 +224,29 @@ class EmailService {
         throw new Error('Email content (text or html) is required');
       }
 
-      // Set default sender
+      // Set default sender with enhanced headers for better deliverability
       const enhancedMailOptions = {
         from: `"Flower Shop" <${process.env.SMTP_USER}>`,
+        replyTo: process.env.SMTP_REPLY_TO || process.env.SMTP_USER, // Reply-to address
+        // Add headers to improve email deliverability
+        headers: {
+          'X-Mailer': 'Flower Shop Notification System',
+          'X-Priority': '1', // Normal priority
+          'List-Unsubscribe': process.env.FRONTEND_URL ? `<${process.env.FRONTEND_URL}/unsubscribe>` : undefined,
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+          ...mailOptions.headers, // Allow custom headers to override
+        },
+        // Add message ID for better tracking
+        messageId: `<${Date.now()}-${Math.random().toString(36).substring(7)}@${process.env.SMTP_USER.split('@')[1] || 'flowershop.com'}>`,
         ...mailOptions,
       };
+      
+      // Remove undefined headers
+      Object.keys(enhancedMailOptions.headers).forEach(key => {
+        if (enhancedMailOptions.headers[key] === undefined) {
+          delete enhancedMailOptions.headers[key];
+        }
+      });
 
       // Log email attempt (without sensitive data)
       console.log('📧 Sending email...');
@@ -173,12 +296,24 @@ class EmailService {
   handleEmailError(error) {
     if (error.code === 'EAUTH') {
       console.error('🔐 Email Authentication Error - Check your App Password');
+      console.error('   Common causes:');
+      console.error('   • Using regular password instead of App Password');
+      console.error('   • App Password expired or revoked');
+      console.error('   • Two-step verification not enabled');
+      console.error('   • Incorrect email or password in .env file');
+      console.error('   Solution: Generate a new App Password at https://myaccount.google.com/apppasswords');
     } else if (error.code === 'ECONNECTION') {
       console.error('🌐 Email Connection Error - Check internet connection and SMTP settings');
+      console.error('   Common causes:');
+      console.error('   • Incorrect SMTP_HOST or SMTP_PORT');
+      console.error('   • Network connectivity issues');
+      console.error('   • Firewall blocking SMTP port 587');
     } else if (error.code === 'EMESSAGE') {
       console.error('📝 Invalid email message format');
     } else if (error.responseCode === 554) {
       console.error('🚫 Email rejected - Check recipient and content');
+    } else {
+      console.error('   Unknown error type. Check error details above.');
     }
   }
 
@@ -344,12 +479,20 @@ const sendActivationEmail = async (email, name, activationCode) => {
 const sendResetPasswordEmail = async (email, name, resetCode) => {
   try {
     console.log(`Attempting to send reset password email to: ${email}`);
+    console.log(`Email service configured: ${emailService.isConfigured}`);
+    console.log(`Email service transporter exists: ${!!emailService.transporter}`);
 
-    // Skip connection verification to reduce latency
+    // Check if email service is configured
     if (!emailService.isConfigured || !emailService.transporter) {
+      console.error('❌ Email service is not properly configured!');
+      console.error('   Configured:', emailService.isConfigured);
+      console.error('   Transporter exists:', !!emailService.transporter);
+      console.error('   Please check SMTP configuration in .env file.');
+      
+      // Try to verify connection as a last resort
       const isConnected = await emailService.verifyConnection();
       if (!isConnected) {
-        throw new Error('SMTP connection verification failed');
+        throw new Error('SMTP connection verification failed. Email service is not configured properly.');
       }
     }
 

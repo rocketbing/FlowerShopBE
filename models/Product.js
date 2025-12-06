@@ -49,17 +49,7 @@ const ProductSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    required: [true, 'Please add a category'],
-    enum: [
-      'roses',
-      'tulips',
-      'lilies',
-      'sunflowers',
-      'orchids',
-      'carnations',
-      'mixed',
-      'other',
-    ],
+    required: [true, 'Please add a category']
   },
   images: {
     url: {

@@ -86,20 +86,45 @@ STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret_here
 GOOGLE_CLIENT_ID=your_google_client_id_here
 
 # Email Configuration (for account activation)
+# 推荐使用 Google Workspace 企业邮箱
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
-SMTP_USER=your_email@gmail.com
-SMTP_PASS=your_app_password_here
+SMTP_USER=noreply@yourdomain.com  # Google Workspace 企业邮箱地址
+SMTP_PASS=your_app_password_here  # Google Workspace 应用专用密码
 
 # Frontend URL (for activation links)
 FRONTEND_URL=http://localhost:3000
 ```
 
-**邮件配置说明：**
-- 如果使用 Gmail，需要生成应用专用密码（不是普通密码）
-- 访问：Google Account → Security → 2-Step Verification → App passwords
-- 其他邮件服务商请参考相应的 SMTP 配置
-- **详细设置指南**：请查看 [邮箱两步验证设置指南](./docs/EMAIL_2FA_SETUP.md)
+**⚠️ 邮件配置安全说明：**
+
+**✅ 推荐使用 Google Workspace 企业邮箱（Google 企业邮箱）**
+
+Google Workspace 企业邮箱配置：
+- **SMTP_HOST**: `smtp.gmail.com`（与普通 Gmail 相同）
+- **SMTP_PORT**: `587`
+- **SMTP_USER**: `your_email@yourdomain.com`（你的企业邮箱地址，如 `noreply@yourcompany.com`）
+- **SMTP_PASS**: Google Workspace 应用专用密码（App Password）
+
+**设置步骤：**
+1. 登录 Google Workspace 管理控制台
+2. 为用于发送邮件的账户启用两步验证
+3. 生成应用专用密码（App Password）
+4. 将应用专用密码配置到 `.env` 文件的 `SMTP_PASS`
+
+**🚨 禁止使用个人邮箱账户！**
+- ❌ 不要使用：`yourname@gmail.com`, `yourname@hotmail.com` 等个人邮箱
+- ✅ 应该使用：`noreply@yourdomain.com`, `support@yourdomain.com` 等业务邮箱（Google Workspace 企业邮箱）
+
+**为什么不能使用个人邮箱？**
+- 个人邮箱可能收到垃圾邮件/退信通知
+- 安全风险：如果账户被入侵，会影响个人账户
+- 违反邮件服务提供商政策，可能导致账户被暂停
+- 系统会自动检测并阻止使用已知的个人邮箱
+
+**详细设置指南**：请查看 [邮箱两步验证设置指南](./docs/EMAIL_2FA_SETUP.md)
+
+**邮件送达率优化**：如果邮件被标记为垃圾邮件，请查看 [邮件送达率优化指南](./docs/EMAIL_DELIVERABILITY.md)
 
 ### 3. 启动 MongoDB
 

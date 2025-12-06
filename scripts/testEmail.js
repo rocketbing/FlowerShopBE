@@ -17,9 +17,12 @@ const testEmail = async () => {
     console.log('\nPlease add the following to your .env file:');
     console.log('SMTP_HOST=smtp.gmail.com (or smtp-mail.outlook.com for Hotmail)');
     console.log('SMTP_PORT=587');
-    console.log('SMTP_USER=your_email@gmail.com');
+    console.log('SMTP_USER=your_business_email@yourdomain.com');
     console.log('SMTP_PASS=your_app_password');
     console.log('FRONTEND_URL=http://localhost:3000');
+    console.log('\n⚠️  SECURITY WARNING: Use a dedicated business email, NOT a personal email!');
+    console.log('   ❌ Do NOT use: yourname@gmail.com, yourname@hotmail.com');
+    console.log('   ✅ Use instead: noreply@yourdomain.com, support@yourdomain.com');
     process.exit(1);
   }
 

@@ -60,6 +60,7 @@ app.use('/api/orders', require('./routes/orderRoutes'));
 app.use('/api/payments', require('./routes/paymentRoutes'));
 app.use('/api/userinfo', require('./routes/userInfoRoutes'));
 app.use('/api/discount-codes', require('./routes/discountCodeRoutes'));
+app.use('/api/upload', require('./routes/uploadRoutes'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {

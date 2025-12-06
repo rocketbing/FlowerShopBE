@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>产品图片上传示例</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 30px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+      color: #555;
+    }
+    input[type="file"],
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      padding: 12px 30px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-top: 10px;
+    }
+    button:hover:not(:disabled) {
+      background-color: #0056b3;
+    }
+    button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 5px;
+    }
+    .success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .info {
+      background-color: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+    .preview {
+      margin-top: 20px;
+    }
+    .preview img {
+      max-width: 100%;
+      max-height: 500px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 10px;
+      background: #f9f9f9;
+    }
+    .url-display {
+      background: #f8f9fa;
+      padding: 10px;
+      border-radius: 5px;
+      margin-top: 10px;
+      word-break: break-all;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    .progress {
+      width: 100%;
+      height: 20px;
+      background-color: #f0f0f0;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+    .progress-bar {
+      height: 100%;
+      background-color: #007bff;
+      transition: width 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🌺 产品图片上传</h1>
+
+    <div class="form-group">
+      <label for="imageInput">选择图片文件：</label>
+      <input type="file" id="imageInput" accept="image/*" />
+      <small style="color: #666;">支持 JPEG, PNG, WebP, GIF，最大 10MB</small>
+    </div>
+
+    <div class="form-group">
+      <label for="productName">产品名称（可选）：</label>
+      <input 
+        type="text" 
+        id="productName" 
+        placeholder="例如：Red Roses Bouquet"
+      />
+      <small style="color: #666;">如果提供，图片会按产品名称组织到对应文件夹</small>
+    </div>
+
+    <div class="form-group">
+      <label for="altText">图片描述（可选）：</label>
+      <input 
+        type="text" 
+        id="altText" 
+        placeholder="例如：Red roses bouquet"
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="authToken">认证 Token：</label>
+      <input 
+        type="text" 
+        id="authToken" 
+        placeholder="Bearer token"
+      />
+      <small style="color: #666;">需要管理员权限</small>
+    </div>
+
+    <button onclick="uploadImage()" id="uploadBtn">上传图片</button>
+
+    <div id="progress" style="display: none;">
+      <div class="progress">
+        <div class="progress-bar" id="progressBar" style="width: 0%;">0%</div>
+      </div>
+    </div>
+
+    <div id="result"></div>
+    <div id="preview" class="preview"></div>
+  </div>
+
+  <script>
+    // 获取认证 token（从 localStorage 或输入框）
+    function getAuthToken() {
+      const tokenInput = document.getElementById('authToken').value.trim();
+      if (tokenInput) {
+        return tokenInput;
+      }
+      // 也可以从 localStorage 获取
+      return localStorage.getItem('authToken') || '';
+    }
+
+    // 上传图片
+    async function uploadImage() {
+      const fileInput = document.getElementById('imageInput');
+      const productNameInput = document.getElementById('productName');
+      const altTextInput = document.getElementById('altText');
+      const resultDiv = document.getElementById('result');
+      const previewDiv = document.getElementById('preview');
+      const uploadBtn = document.getElementById('uploadBtn');
+      const progressDiv = document.getElementById('progress');
+      const progressBar = document.getElementById('progressBar');
+
+      // 检查文件
+      if (!fileInput.files || fileInput.files.length === 0) {
+        showError('请选择一张图片');
+        return;
+      }
+
+      const file = fileInput.files[0];
+      const productName = productNameInput.value.trim();
+      const altText = altTextInput.value.trim();
+      const token = getAuthToken();
+
+      // 验证文件类型
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+      if (!allowedTypes.includes(file.type)) {
+        showError('不支持的文件类型。只支持 JPEG, PNG, WebP, GIF');
+        return;
+      }
+
+      // 验证文件大小（10MB）
+      if (file.size > 10 * 1024 * 1024) {
+        showError('文件太大。最大支持 10MB');
+        return;
+      }
+
+      // 检查 token
+      if (!token) {
+        showError('请提供认证 Token');
+        return;
+      }
+
+      // 创建 FormData
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      if (productName) {
+        formData.append('productName', productName);
+      }
+      
+      if (altText) {
+        formData.append('alt', altText);
+      }
+
+      // 显示加载状态
+      uploadBtn.disabled = true;
+      uploadBtn.textContent = '上传中...';
+      progressDiv.style.display = 'block';
+      progressBar.style.width = '0%';
+      progressBar.textContent = '0%';
+      resultDiv.innerHTML = '';
+      previewDiv.innerHTML = '';
+
+      try {
+        // 使用 XMLHttpRequest 来显示上传进度
+        const xhr = new XMLHttpRequest();
+
+        // 监听上传进度
+        xhr.upload.addEventListener('progress', (e) => {
+          if (e.lengthComputable) {
+            const percentComplete = Math.round((e.loaded / e.total) * 100);
+            progressBar.style.width = percentComplete + '%';
+            progressBar.textContent = percentComplete + '%';
+          }
+        });
+
+        // 监听完成
+        xhr.addEventListener('load', () => {
+          progressDiv.style.display = 'none';
+          uploadBtn.disabled = false;
+          uploadBtn.textContent = '上传图片';
+
+          if (xhr.status === 200) {
+            try {
+              const result = JSON.parse(xhr.responseText);
+              handleSuccess(result);
+            } catch (e) {
+              showError('响应解析失败：' + e.message);
+            }
+          } else {
+            try {
+              const error = JSON.parse(xhr.responseText);
+              showError(error.message || '上传失败');
+            } catch (e) {
+              showError('上传失败，状态码：' + xhr.status);
+            }
+          }
+        });
+
+        // 监听错误
+        xhr.addEventListener('error', () => {
+          progressDiv.style.display = 'none';
+          uploadBtn.disabled = false;
+          uploadBtn.textContent = '上传图片';
+          showError('网络错误，请检查连接');
+        });
+
+        // 发送请求
+        xhr.open('POST', 'http://localhost:3000/api/upload/product-image');
+        xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+        xhr.send(formData);
+
+      } catch (error) {
+        progressDiv.style.display = 'none';
+        uploadBtn.disabled = false;
+        uploadBtn.textContent = '上传图片';
+        showError('上传错误：' + error.message);
+        console.error('上传错误:', error);
+      }
+    }
+
+    // 处理成功响应
+    function handleSuccess(result) {
+      const resultDiv = document.getElementById('result');
+      const previewDiv = document.getElementById('preview');
+
+      if (result.success && result.data) {
+        const data = result.data;
+
+        // 显示成功信息
+        resultDiv.innerHTML = `
+          <div class="result success">
+            <h3>✅ 上传成功！</h3>
+            <p><strong>原始 URL:</strong></p>
+            <div class="url-display">${data.url}</div>
+            <p style="margin-top: 10px;"><strong>文件 Key:</strong> ${data.key}</p>
+            <p><strong>文件大小:</strong> ${(data.size / 1024).toFixed(2)} KB</p>
+            <p><strong>文件类型:</strong> ${data.mimetype}</p>
+            ${data.alt ? `<p><strong>Alt 文本:</strong> ${data.alt}</p>` : ''}
+          </div>
+        `;
+
+        // 显示图片预览（使用 Presigned URL）
+        if (data.presignedUrl) {
+          previewDiv.innerHTML = `
+            <h3>图片预览（Presigned URL，1小时内有效）：</h3>
+            <img src="${data.presignedUrl}" alt="${data.alt || 'Uploaded image'}" />
+            <p style="margin-top: 10px;"><strong>Presigned URL:</strong></p>
+            <div class="url-display">${data.presignedUrl}</div>
+          `;
+        }
+
+        // 复制 URL 到剪贴板的功能
+        if (navigator.clipboard) {
+          const copyBtn = document.createElement('button');
+          copyBtn.textContent = '复制图片 URL';
+          copyBtn.style.marginTop = '10px';
+          copyBtn.onclick = () => {
+            navigator.clipboard.writeText(data.url).then(() => {
+              alert('URL 已复制到剪贴板！');
+            });
+          };
+          resultDiv.querySelector('.result').appendChild(copyBtn);
+        }
+      } else {
+        showError(result.message || '上传失败');
+      }
+    }
+
+    // 显示错误信息
+    function showError(message) {
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = `
+        <div class="result error">
+          <h3>❌ 错误</h3>
+          <p>${message}</p>
+        </div>
+      `;
+    }
+
+    // 页面加载时尝试从 localStorage 获取 token
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedToken = localStorage.getItem('authToken');
+      if (savedToken) {
+        document.getElementById('authToken').value = savedToken;
+      }
+    });
+
+    // 保存 token 到 localStorage
+    document.getElementById('authToken').addEventListener('change', (e) => {
+      if (e.target.value.trim()) {
+        localStorage.setItem('authToken', e.target.value.trim());
+      }
+    });
+  </script>
+</body>
+</html>
+

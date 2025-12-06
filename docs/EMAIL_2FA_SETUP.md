@@ -2,6 +2,94 @@
 
 本指南将帮助你为发送验证邮件的邮箱账户设置两步验证（2-Step Authentication），并生成应用专用密码（App Password）。
 
+## 🚨 重要安全提示
+
+**⚠️ 禁止使用个人邮箱账户作为系统发件邮箱！**
+
+- ❌ **不要使用**：`yourname@gmail.com`, `yourname@hotmail.com` 等个人邮箱
+- ✅ **应该使用**：`noreply@yourdomain.com`, `support@yourdomain.com` 等专门的业务邮箱
+
+**为什么不能使用个人邮箱？**
+- 个人邮箱可能收到垃圾邮件/退信通知
+- 安全风险：如果账户被入侵，会影响个人账户
+- 违反邮件服务提供商政策，可能导致账户被暂停
+- 系统会自动检测并阻止使用已知的个人邮箱（如 `torontobing@gmail.com`）
+
+**解决方案：**
+- ✅ **推荐：使用 Google Workspace 企业邮箱**（Google 企业邮箱）
+- 为项目创建专门的业务邮箱账户
+- 使用你拥有的域名创建邮箱（如 `noreply@yourdomain.com`）
+- 或使用专门的服务邮箱（如 SendGrid, Mailgun 等专业邮件服务）
+
+---
+
+## 🏢 Google Workspace 企业邮箱配置（推荐）
+
+Google Workspace（原 G Suite）企业邮箱是最推荐的方案，使用你自己的域名（如 `@yourcompany.com`）。
+
+### 优势
+- ✅ 使用自己的域名，更专业
+- ✅ 与 Gmail 相同的 SMTP 配置，简单易用
+- ✅ 企业级安全和管理功能
+- ✅ 不会被误判为个人邮箱
+
+### 配置步骤
+
+#### 步骤 1: 确保已启用两步验证
+
+1. **登录 Google Workspace 账户**
+   - 访问：https://myaccount.google.com/security
+   - 使用你的企业邮箱账户登录（如 `admin@yourcompany.com`）
+
+2. **启用两步验证**
+   - 在"登录 Google"部分，找到"两步验证"（2-Step Verification）
+   - 如果未启用，点击"开始使用"并完成设置
+   - 详细步骤请参考下面的"Gmail 两步验证设置"部分
+
+#### 步骤 2: 生成应用专用密码
+
+1. **访问应用专用密码页面**
+   - 访问：https://myaccount.google.com/apppasswords
+   - 或：Google 账户 → 安全性 → 两步验证 → 应用专用密码
+
+2. **生成应用专用密码**
+   - **应用**：选择"邮件"或"其他（自定义名称）"
+   - **设备**：选择"其他（自定义名称）"，输入"Flower Shop Backend"
+   - 点击"生成"
+
+3. **复制应用专用密码**
+   - Google 会生成一个 16 位的密码（格式：`xxxx xxxx xxxx xxxx`）
+   - **重要**：立即复制这个密码，它只会显示一次！
+
+#### 步骤 3: 配置 .env 文件
+
+```env
+# Google Workspace 企业邮箱配置
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=noreply@yourcompany.com  # 你的企业邮箱地址
+SMTP_PASS=xxxx xxxx xxxx xxxx  # 应用专用密码（可以去掉空格）
+FRONTEND_URL=http://localhost:3000
+```
+
+**配置说明：**
+- `SMTP_HOST`: 使用 `smtp.gmail.com`（与普通 Gmail 相同）
+- `SMTP_PORT`: 使用 `587`
+- `SMTP_USER`: 你的 Google Workspace 企业邮箱地址（如 `noreply@yourcompany.com`）
+- `SMTP_PASS`: 刚才生成的应用专用密码
+
+#### 步骤 4: 验证配置
+
+运行测试脚本验证配置：
+
+```bash
+node scripts/testEmail.js
+```
+
+如果看到 "✅ Email sent successfully!"，说明配置成功！
+
+---
+
 ## 📋 为什么需要两步验证？
 
 - ✅ **提高安全性**：即使密码泄露，账户仍然安全
@@ -10,7 +98,9 @@
 
 ---
 
-## 🔵 Gmail 两步验证设置
+## 🔵 Gmail 个人邮箱两步验证设置（不推荐用于生产环境）
+
+⚠️ **注意**：虽然可以配置 Gmail 个人邮箱，但强烈建议使用 Google Workspace 企业邮箱。个人邮箱仅用于开发测试。
 
 ### 步骤 1: 启用两步验证
 
@@ -96,9 +186,11 @@
    ```env
    SMTP_HOST=smtp.gmail.com
    SMTP_PORT=587
-   SMTP_USER=your_email@gmail.com
+   SMTP_USER=your_business_email@yourdomain.com  # ⚠️ 使用业务邮箱，不要使用个人邮箱！
    SMTP_PASS=xxxx xxxx xxxx xxxx  # 使用刚才生成的应用专用密码（可以去掉空格）
    ```
+   
+   **⚠️ 重要**：确保 `SMTP_USER` 是业务邮箱，不是个人邮箱（如 `yourname@gmail.com`）
 
 ### 步骤 3: 验证设置
 
@@ -156,9 +248,11 @@ node scripts/testEmail.js
    ```env
    SMTP_HOST=smtp-mail.outlook.com
    SMTP_PORT=587
-   SMTP_USER=your_email@hotmail.com  # 或 @outlook.com
+   SMTP_USER=your_business_email@yourdomain.com  # ⚠️ 使用业务邮箱，不要使用个人邮箱！
    SMTP_PASS=生成的应用专用密码
    ```
+   
+   **⚠️ 重要**：确保 `SMTP_USER` 是业务邮箱，不是个人邮箱（如 `yourname@hotmail.com`）
 
 ### 步骤 3: 验证设置
 
@@ -186,9 +280,11 @@ node scripts/testEmail.js
    ```env
    SMTP_HOST=smtp.mail.yahoo.com
    SMTP_PORT=587
-   SMTP_USER=your_email@yahoo.com
+   SMTP_USER=your_business_email@yourdomain.com  # ⚠️ 使用业务邮箱，不要使用个人邮箱！
    SMTP_PASS=应用专用密码
    ```
+   
+   **⚠️ 重要**：确保 `SMTP_USER` 是业务邮箱，不是个人邮箱
 
 ### 企业邮箱（Office 365 / Exchange）
 
@@ -200,7 +296,7 @@ node scripts/testEmail.js
    ```env
    SMTP_HOST=smtp.office365.com
    SMTP_PORT=587
-   SMTP_USER=your_email@company.com
+   SMTP_USER=your_business_email@yourdomain.com  # ⚠️ 使用业务邮箱
    SMTP_PASS=应用专用密码或IT提供的密码
    ```
 
@@ -215,8 +311,18 @@ node scripts/testEmail.js
 ### Q2: 应用专用密码在哪里查看？
 
 **A:** 
-- **Gmail**: https://myaccount.google.com/apppasswords
+- **Google Workspace / Gmail**: https://myaccount.google.com/apppasswords
 - **Outlook**: https://account.microsoft.com/security/app-passwords
+
+### Q2.1: Google Workspace 和 Gmail 的配置有什么区别？
+
+**A:** 配置完全相同！Google Workspace 企业邮箱使用与 Gmail 相同的 SMTP 服务器：
+- **SMTP_HOST**: `smtp.gmail.com`（相同）
+- **SMTP_PORT**: `587`（相同）
+- **SMTP_USER**: `your_email@yourdomain.com`（企业邮箱地址，不是 @gmail.com）
+- **SMTP_PASS**: 应用专用密码（生成方式相同）
+
+唯一的区别是邮箱地址：Google Workspace 使用你自己的域名（如 `@yourcompany.com`），而 Gmail 使用 `@gmail.com`。
 
 ### Q3: 忘记了应用专用密码怎么办？
 
@@ -269,16 +375,36 @@ node scripts/testEmail.js
 
 ## 📝 完整配置示例
 
-### Gmail 配置示例
+### Google Workspace 企业邮箱配置示例（推荐）
 
 ```env
-# .env 文件
+# .env 文件 - Google Workspace 企业邮箱
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
-SMTP_USER=flowershop@gmail.com
+SMTP_USER=noreply@yourcompany.com  # 你的 Google Workspace 企业邮箱地址
+SMTP_PASS=abcd efgh ijkl mnop  # Google Workspace 应用专用密码（16位，可以去掉空格）
+FRONTEND_URL=http://localhost:3001
+```
+
+**✅ 这是推荐的配置方式！**
+- 使用你自己的域名（如 `@yourcompany.com`）
+- 企业级安全和管理
+- 不会被误判为个人邮箱
+
+### Gmail 个人邮箱配置示例（仅用于开发测试，不推荐生产环境）
+
+```env
+# .env 文件 - Gmail 个人邮箱（仅开发测试）
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=yourname@gmail.com  # ⚠️ 仅用于开发测试，生产环境请使用企业邮箱
 SMTP_PASS=abcd efgh ijkl mnop  # Gmail 应用专用密码（16位，可以去掉空格）
 FRONTEND_URL=http://localhost:3001
 ```
+
+**⚠️ 重要提示**：
+- ❌ 生产环境不要使用：`yourname@gmail.com` 等个人邮箱
+- ✅ 生产环境应该使用：`noreply@yourcompany.com` 等 Google Workspace 企业邮箱
 
 ### Hotmail/Outlook 配置示例
 
@@ -286,10 +412,14 @@ FRONTEND_URL=http://localhost:3001
 # .env 文件
 SMTP_HOST=smtp-mail.outlook.com
 SMTP_PORT=587
-SMTP_USER=flowershop@hotmail.com
+SMTP_USER=noreply@yourdomain.com  # ⚠️ 使用业务邮箱，不要使用个人邮箱！
 SMTP_PASS=生成的Outlook应用专用密码
 FRONTEND_URL=http://localhost:3001
 ```
+
+**⚠️ 重要提示**：
+- ❌ 不要使用：`yourname@hotmail.com`, `flowershop@hotmail.com` 等个人邮箱
+- ✅ 应该使用：`noreply@yourdomain.com`, `support@yourdomain.com` 等业务邮箱
 
 ---
 

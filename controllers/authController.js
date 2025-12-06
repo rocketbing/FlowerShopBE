@@ -499,16 +499,39 @@ exports.requestReset = async (req, res, next) => {
 
       console.log(`💾 Reset code saved to database`);
 
+      // Check email service status before attempting to send
+      const { emailService } = require('../utils/emailService');
+      const emailStatus = emailService.getStatus();
+      
+      if (!emailStatus.configured) {
+        console.error('❌ Email service is not configured! Cannot send reset password email.');
+        console.error('   Email service status:', JSON.stringify(emailStatus, null, 2));
+        console.error('   Please check SMTP configuration in .env file.');
+      }
+
       // Send reset password email asynchronously (don't block response)
       setImmediate(async () => {
         try {
           console.log(`📧 Attempting to send reset password email to: ${user.email}`);
+          console.log(`   Email service configured: ${emailStatus.configured}`);
+          
+          if (!emailStatus.configured) {
+            throw new Error('Email service is not configured. Please check SMTP settings in .env file.');
+          }
+          
           await sendResetPasswordEmail(user.email, user.name, resetCode);
           console.log(`✅ Reset password email sent successfully to ${user.email}`);
         } catch (emailError) {
           console.error('❌ Failed to send reset password email:');
-          console.error('   Error:', emailError.message || emailError);
+          console.error('   Error code:', emailError.code || 'N/A');
+          console.error('   Error message:', emailError.message || emailError);
+          if (emailError.error) {
+            console.error('   Error details:', emailError.error);
+          }
           console.error('   Stack:', emailError.stack);
+          
+          // Log additional diagnostic information
+          console.error('   Email service status:', JSON.stringify(emailStatus, null, 2));
         }
       });
     } else {
